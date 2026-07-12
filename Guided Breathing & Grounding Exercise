@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EmotiTrack — Grounding & Breathing Guide</title>
+<style>
+  :root{
+    --bg-top:#f5f2fb;
+    --bg-bottom:#e9e2f7;
+    --primary:#8b6fc9;
+    --primary-dark:#6e4fb0;
+    --accent-stable:#5fbf7a;
+    --accent-warn:#e8a33d;
+    --accent-sos:#d9534f;
+    --card:#ffffff;
+    --text:#3a3350;
+    --text-soft:#7a7191;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'Segoe UI', 'Poppins', 'Inter', system-ui, sans-serif;
+    background:linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    color:var(--text);
+  }
+
+  .app{
+    width:380px;
+    max-width:92vw;
+    background:var(--card);
+    border-radius:28px;
+    box-shadow:0 20px 50px rgba(110,79,176,0.18);
+    padding:28px 26px 32px;
+    text-align:center;
+  }
+
+  .header{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .logo-icon{ width:26px; height:26px; }
+  .header h1{
+    font-size:18px;
+    margin:0;
+    font-weight:600;
+    color:var(--primary-dark);
+  }
+  .subtitle{
+    font-size:13px;
+    color:var(--text-soft);
+    margin:2px 0 22px;
+  }
+
+  /* --- Breathing circle animation --- */
+  .circle-wrap{
+    position:relative;
+    width:220px;
+    height:220px;
+    margin:0 auto 18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ring{
+    position:absolute;
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 40%, #ffffff 0%, #eee6fb 60%, transparent 61%);
+  }
+  .breath-circle{
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #b79bea, var(--primary));
+    box-shadow:0 0 0 0 rgba(139,111,201,0.4);
+    transition:transform 4s ease-in-out, box-shadow 4s ease-in-out, background 0.6s ease;
+  }
+  .breath-circle.inhale{
+    transform:scale(1.55);
+    box-shadow:0 0 40px 10px rgba(139,111,201,0.35);
+  }
+  .breath-circle.hold{
+    transform:scale(1.55);
+    background:radial-gradient(circle at 35% 30%, #f0c96b, var(--accent-warn));
+  }
+  .breath-circle.exhale{
+    transform:scale(1);
+    box-shadow:0 0 0 0 rgba(139,111,201,0.2);
+  }
+
+  .phase-label{
+    position:absolute;
+    font-size:16px;
+    font-weight:600;
+    color:#ffffff;
+    letter-spacing:0.5px;
+    pointer-events:none;
+  }
+
+  .timer{
+    font-size:13px;
+    color:var(--text-soft);
+    margin-bottom:16px;
+  }
+
+  /* --- Progress bar --- */
+  .progress-track{
+    width:100%;
+    height:8px;
+    border-radius:6px;
+    background:#eee5fb;
+    overflow:hidden;
+    margin-bottom:6px;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg, var(--primary), var(--accent-stable));
+    border-radius:6px;
+    transition:width 0.2s linear;
+  }
+  .cycle-count{
+    font-size:12px;
+    color:var(--text-soft);
+    margin-bottom:22px;
+  }
+
+  /* --- Controls --- */
+  .controls{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-bottom:18px;
+  }
+  button{
+    font-family:inherit;
+    border:none;
+    cursor:pointer;
+    border-radius:999px;
+    font-weight:600;
+    transition:transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button:active{ transform:scale(0.95); }
+
+  .btn-primary{
+    background:var(--primary);
+    color:#fff;
+    padding:12px 26px;
+    font-size:14px;
+    box-shadow:0 8px 18px rgba(139,111,201,0.35);
+  }
+  .btn-secondary{
+    background:#f1ecfa;
+    color:var(--primary-dark);
+    padding:12px 18px;
+    font-size:14px;
+  }
+
+  .toggle-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    color:var(--text-soft);
+    padding:8px 4px;
+    border-top:1px solid #f0ebfa;
+  }
+  .switch{
+    position:relative;
+    width:38px;
+    height:22px;
+    background:#e2d9f5;
+    border-radius:999px;
+    cursor:pointer;
+    transition:background 0.2s ease;
+  }
+  .switch.on{ background:var(--primary); }
+  .switch::after{
+    content:'';
+    position:absolute;
+    top:3px; left:3px;
+    width:16px; height:16px;
+    background:#fff;
+    border-radius:50%;
+    transition:left 0.2s ease;
+  }
+  .switch.on::after{ left:19px; }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:600;
+    padding:5px 12px;
+    border-radius:999px;
+    margin-top:14px;
+    background:#eafbf0;
+    color:#2e8b52;
+  }
+  .status-dot{
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--accent-stable);
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <svg class="logo-icon" viewBox="0 0 24 24" fill="none">
+      <path d="M12 21s-7.5-4.6-9.8-9.4C.6 7.7 3 3.8 7 3.8c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 4 0 6.4 3.9 4.8 7.8C19.5 16.4 12 21 12 21z"
+        fill="#8b6fc9" opacity="0.9"/>
+    </svg>
+    <h1>EmotiTrack</h1>
+  </div>
+  <p class="subtitle">Grounding &amp; Breathing Guide</p>
+
+  <div class="circle-wrap">
+    <div class="ring"></div>
+    <div class="breath-circle" id="breathCircle"></div>
+    <div class="phase-label" id="phaseLabel">Ready</div>
+  </div>
+
+  <div class="timer" id="timerLabel">Tap start when you're ready</div>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="cycle-count" id="cycleCount">Cycle 0 of 4</div>
+
+  <div class="controls">
+    <button class="btn-primary" id="startBtn">Start Exercise</button>
+    <button class="btn-secondary" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="toggle-row">
+    <span>Ambient sound</span>
+    <div class="switch on" id="soundSwitch"></div>
+  </div>
+  <div class="toggle-row">
+    <span>Voice cues</span>
+    <div class="switch" id="voiceSwitch"></div>
+  </div>
+
+  <div id="statusPill" style="display:none">
+    <div class="status-pill">
+      <span class="status-dot"></span> Exercise complete — you're doing great
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   EmotiTrack Breathing Guide — coded key function
+   Implements FR-07 (Grounding & Breathing Guidance)
+   ========================================================= */
+
+// ---------- Audio: generated tones, no external files ----------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let ambientNodes = null;
+let soundOn = true;
+let voiceOn = false;
+
+function playTone(freq, duration, type='sine', vol=0.15){
+  if(!soundOn) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+// Click sound for buttons
+function playClick(){ playTone(600, 0.08, 'square', 0.06); }
+
+// Phase-change chime (different pitch per phase)
+function playPhaseChime(phase){
+  if(phase === 'inhale') playTone(523.25, 0.5, 'sine', 0.12);   // C5
+  if(phase === 'hold')   playTone(659.25, 0.5, 'sine', 0.10);   // E5
+  if(phase === 'exhale') playTone(392.00, 0.6, 'sine', 0.12);   // G4
+}
+
+// Completion sound
+function playCompletionChime(){
+  [523.25, 659.25, 783.99].forEach((f,i)=>{
+    setTimeout(()=>playTone(f, 0.6, 'sine', 0.12), i*180);
+  });
+}
+
+// Ambient background drone, toggled on/off
+function startAmbient(){
+  if(!soundOn || ambientNodes) return;
+  const osc1 = audioCtx.createOscillator();
+  const osc2 = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc1.type = 'sine'; osc1.frequency.value = 174;
+  osc2.type = 'sine'; osc2.frequency.value = 220;
+  gain.gain.value = 0.025;
+  osc1.connect(gain); osc2.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc1.start(); osc2.start();
+  ambientNodes = {osc1, osc2, gain};
+}
+function stopAmbient(){
+  if(ambientNodes){
+    ambientNodes.osc1.stop();
+    ambientNodes.osc2.stop();
+    ambientNodes = null;
+  }
+}
+
+// Simple speech cue using built-in browser speech synthesis (no API key needed)
+function speak(text){
+  if(!voiceOn) return;
+  if('speechSynthesis' in window){
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
+    speechSynthesis.speak(utter);
+  }
+}
+
+// ---------- Visual elements ----------
+const breathCircle = document.getElementById('breathCircle');
+const phaseLabel   = document.getElementById('phaseLabel');
+const timerLabel   = document.getElementById('timerLabel');
+const progressFill = document.getElementById('progressFill');
+const cycleCountEl = document.getElementById('cycleCount');
+const startBtn     = document.getElementById('startBtn');
+const resetBtn     = document.getElementById('resetBtn');
+const soundSwitch  = document.getElementById('soundSwitch');
+const voiceSwitch  = document.getElementById('voiceSwitch');
+const statusPill   = document.getElementById('statusPill');
+
+// ---------- Breathing cycle logic ----------
+// 4s inhale, 4s hold, 6s exhale — a common grounding pattern
+const PHASES = [
+  { name:'inhale', label:'Breathe In',  duration:4 },
+  { name:'hold',   label:'Hold',        duration:4 },
+  { name:'exhale', label:'Breathe Out', duration:6 }
+];
+const TOTAL_CYCLES = 4;
+
+let running = false;
+let cycle = 0;
+let phaseIndex = 0;
+let phaseTimeLeft = 0;
+let tickInterval = null;
+
+function resetState(){
+  running = false;
+  cycle = 0;
+  phaseIndex = 0;
+  clearInterval(tickInterval);
+  breathCircle.className = 'breath-circle';
+  phaseLabel.textContent = 'Ready';
+  timerLabel.textContent = "Tap start when you're ready";
+  progressFill.style.width = '0%';
+  cycleCountEl.textContent = `Cycle 0 of ${TOTAL_CYCLES}`;
+  statusPill.style.display = 'none';
+  stopAmbient();
+}
+
+function startPhase(){
+  const phase = PHASES[phaseIndex];
+  phaseTimeLeft = phase.duration;
+
+  breathCircle.className = 'breath-circle ' + phase.name;
+  phaseLabel.textContent = phase.label;
+  playPhaseChime(phase.name);
+  speak(phase.label);
+
+  tickInterval = setInterval(()=>{
+    phaseTimeLeft -= 0.1;
+    timerLabel.textContent = `${phase.label} — ${Math.max(0, phaseTimeLeft).toFixed(1)}s`;
+
+    // overall progress bar across the whole exercise
+    const totalDuration = PHASES.reduce((a,p)=>a+p.duration,0) * TOTAL_CYCLES;
+    const elapsed = (cycle * PHASES.reduce((a,p)=>a+p.duration,0))
+                   + PHASES.slice(0,phaseIndex).reduce((a,p)=>a+p.duration,0)
+                   + (phase.duration - phaseTimeLeft);
+    progressFill.style.width = Math.min(100, (elapsed/totalDuration)*100) + '%';
+
+    if(phaseTimeLeft <= 0){
+      clearInterval(tickInterval);
+      nextPhase();
+    }
+  }, 100);
+}
+
+function nextPhase(){
+  phaseIndex++;
+  if(phaseIndex >= PHASES.length){
+    phaseIndex = 0;
+    cycle++;
+    cycleCountEl.textContent = `Cycle ${cycle} of ${TOTAL_CYCLES}`;
+  }
+  if(cycle >= TOTAL_CYCLES){
+    finishExercise();
+    return;
+  }
+  startPhase();
+}
+
+function finishExercise(){
+  running = false;
+  breathCircle.className = 'breath-circle';
+  phaseLabel.textContent = 'Done';
+  timerLabel.textContent = 'Exercise complete';
+  progressFill.style.width = '100%';
+  statusPill.style.display = 'block';
+  playCompletionChime();
+  speak('Great job. Exercise complete.');
+  stopAmbient();
+  startBtn.textContent = 'Start Exercise';
+}
+
+startBtn.addEventListener('click', ()=>{
+  playClick();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+
+  if(running) return;
+  resetState();
+  running = true;
+  startBtn.textContent = 'In Progress…';
+  startAmbient();
+  startPhase();
+});
+
+resetBtn.addEventListener('click', ()=>{
+  playClick();
+  resetState();
+});
+
+soundSwitch.addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  soundSwitch.classList.toggle('on', soundOn);
+  if(!soundOn) stopAmbient(); else if(running) startAmbient();
+});
+
+voiceSwitch.addEventListener('click', ()=>{
+  voiceOn = !voiceOn;
+  voiceSwitch.classList.toggle('on', voiceOn);
+});
+
+resetState();
+</script>
+</body>
+</html>
